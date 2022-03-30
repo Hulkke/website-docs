@@ -26,28 +26,24 @@ jobs:
         uses: softprops/turnstyle@v1
 
       - name: Set known_hosts
-        if: ${{ !env.ACT && github.repository_owner == 'pingcap' }}
+        if: ${{ !env.ACT && github.repository_owner == 'Hulkke' }}
         id: known-hosts
         run: |
-          echo "::set-output name=BJ_PROXY::$(ssh-keyscan -H ${{ secrets.BJ_PROXY_HOST }})"
-          echo "::set-output name=LA1::$(ssh-keyscan -H ${{ secrets.LA_1_HOST }})"
-          echo "::set-output name=LA2::$(ssh-keyscan -H ${{ secrets.LA_2_HOST }})"
+          echo "::set-output name=HK::$(ssh-keyscan -H ${{ secrets.HK_HOST }})"
 
       - name: Install SSH Key
-        if: ${{ !env.ACT && github.repository_owner == 'pingcap' }}
+        if: ${{ !env.ACT && github.repository_owner == 'Hulkke' }}
         uses: shimataro/ssh-key-action@v2
         with:
           key: ${{ secrets.SSH_KEY }}
           known_hosts: |
-            ${{ steps.known-hosts.outputs.BJ_PROXY }}
-            ${{ steps.known-hosts.outputs.LA1 }}
-            ${{ steps.known-hosts.outputs.LA2 }}
+            ${{ steps.known-hosts.outputs.HK }}
 
       - uses: actions/setup-node@v2
         if: ${{ !env.ACT }}
         with:
-          node-version: '16'
-          cache: 'yarn'
+          node-version: "16"
+          cache: "yarn"
 
       - name: Install yarn (ACT)
         # Since actions/setup-node currently errors out when run locally, here is a manual installation
@@ -62,14 +58,14 @@ jobs:
       - name: Install deps
         run: yarn
 
-      - name: Restore docs
-        uses: actions/cache@v2
-        id: docs-cache
-        with:
-          path: markdown-pages
-          key: ${{ runner.os }}-docs-cache-4-${{ github.event.client_payload.sha }} # You can inc the version number to force cache rebuild
-          restore-keys: |
-            ${{ runner.os }}-docs-cache-4-
+      # - name: Restore docs
+      #   uses: actions/cache@v2
+      #   id: docs-cache
+      #   with:
+      #     path: markdown-pages
+      #     key: ${{ runner.os }}-docs-cache-4-${{ github.event.client_payload.sha }} # You can inc the version number to force cache rebuild
+      #     restore-keys: |
+      #       ${{ runner.os }}-docs-cache-4-
 
       # if download_type is full, download all docs
       - name: Download all docs
@@ -77,12 +73,7 @@ jobs:
         env:
           GITHUB_AUTHORIZATION_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          yarn download:tidb:en:all
-          yarn download:tidb:zh:all
-          yarn download:dm:all
-          yarn download:tidb-operator:all
-          yarn download:dbaas:all
-          yarn download:appdev:all
+          yarn run download:ee:zh:all
 
       - name: Download specific docs
         if: github.event.client_payload.download_type == 'partial'
@@ -91,40 +82,40 @@ jobs:
         run: eval "${{ github.event.client_payload.command }}"
 
       # incremental: get the base commit from cache for furthur use
-      - name: Get base commit cache
-        if: github.event.client_payload.download_type != 'full' && github.event.client_payload.repo != 'pingcap/website-docs'
-        id: cache-commit
-        run: |
-          REPO=$(cut -d"/" -f2 <<< "${{ github.event.client_payload.repo }}")
-          HASH=${{ github.workspace }}/markdown-pages/$REPO-${{ github.event.client_payload.ref }}.hash
-          BASE=""
-          if [ -f "$HASH" ]; then
-            BASE=$(cat $HASH)
-          fi
-          echo "get base hash: $BASE"
-          echo "::set-output name=path::$HASH"
-          echo "::set-output name=base::$BASE"
+      # - name: Get base commit cache
+      #   if: github.event.client_payload.download_type != 'full' && github.event.client_payload.repo != 'pingcap/website-docs'
+      #   id: cache-commit
+      #   run: |
+      #     REPO=$(cut -d"/" -f2 <<< "${{ github.event.client_payload.repo }}")
+      #     HASH=${{ github.workspace }}/markdown-pages/$REPO-${{ github.event.client_payload.ref }}.hash
+      #     BASE=""
+      #     if [ -f "$HASH" ]; then
+      #       BASE=$(cat $HASH)
+      #     fi
+      #     echo "get base hash: $BASE"
+      #     echo "::set-output name=path::$HASH"
+      #     echo "::set-output name=base::$BASE"
 
       # incremental: download changed files
-      - name: Sync docs
-        if: steps.cache-commit.outputs.base != '' && github.event.client_payload.download_type != 'full' && github.event.client_payload.repo != 'pingcap/website-docs'
-        env:
-          GITHUB_AUTHORIZATION_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: |
-          ACT=${{ env.ACT }}
-          [[ "${ACT:-false}" = "true" ]] && dryRun="true" || dryRun="false"
-          yarn sync ${{ github.event.client_payload.repo }} --ref ${{ github.event.client_payload.ref }} ${{ steps.cache-commit.outputs.base }} ${{ github.event.client_payload.sha }} --dry-run $dryRun
+      # - name: Sync docs
+      #   if: steps.cache-commit.outputs.base != '' && github.event.client_payload.download_type != 'full' && github.event.client_payload.repo != 'pingcap/website-docs'
+      #   env:
+      #     GITHUB_AUTHORIZATION_TOKEN: ${{ secrets.GH_TOKEN }}
+      #   run: |
+      #     ACT=${{ env.ACT }}
+      #     [[ "${ACT:-false}" = "true" ]] && dryRun="true" || dryRun="false"
+      #     yarn sync ${{ github.event.client_payload.repo }} --ref ${{ github.event.client_payload.ref }} ${{ steps.cache-commit.outputs.base }} ${{ github.event.client_payload.sha }} --dry-run $dryRun
 
-      - name: Restore gatsby cache
-        uses: actions/cache@v2
-        id: gatsby-cache
-        with:
-          path: |
-            .cache
-            public
-          key: ${{ runner.os }}-gatsby-cache-3-${{ github.event.client_payload.sha }} # You can inc the version number to force cache rebuild
-          restore-keys: |
-            ${{ runner.os }}-gatsby-cache-3-
+      # - name: Restore gatsby cache
+      #   uses: actions/cache@v2
+      #   id: gatsby-cache
+      #   with:
+      #     path: |
+      #       .cache
+      #       public
+      #     key: ${{ runner.os }}-gatsby-cache-3-${{ github.event.client_payload.sha }} # You can inc the version number to force cache rebuild
+      #     restore-keys: |
+      #       ${{ runner.os }}-gatsby-cache-3-
 
       - name: Build website
         env:
@@ -135,44 +126,18 @@ jobs:
           yarn build --verbose
           mv public/sitemap/sitemap-0.xml public/sitemap.xml
 
-      - name: Deploy to LA1
-        if: ${{ !env.ACT && github.repository_owner == 'pingcap' }}
+      - name: Deploy to HK
+        if: ${{ !env.ACT && github.repository_owner == 'Hulkke' }}
         run: |
-          rsync -avz --delete public/ "${{ secrets.SSH_USER }}@${{ secrets.LA_1_HOST }}:${{ secrets.DEPLOY_PATH }}"
+          rsync -avz --delete -e 'ssh -p 22 -o StrictHostKeyChecking=no' public/ "root@${{ secrets.HK_HOST }}:/root/website-docs"
 
-      - name: Deploy to LA2
-        if: ${{ !env.ACT && github.repository_owner == 'pingcap' }}
-        run: |
-          rsync -avz --delete public/ "${{ secrets.SSH_USER }}@${{ secrets.LA_2_HOST }}:${{ secrets.DEPLOY_PATH }}"
+      # - name: Update current commit sha to cache
+      #   if: github.event.client_payload.download_type != 'full' && github.event.client_payload.repo != 'pingcap/website-docs'
+      #   run: |
+      #     echo ${{ github.event.client_payload.sha }} > ${{ steps.cache-commit.outputs.path }}
 
-      - name: Deploy to BJ1
-        if: ${{ !env.ACT && github.repository_owner == 'pingcap' }}
-        run: |
-          rsync -avz --delete -e 'ssh -p ${{ secrets.BJ_1_PROXY_PORT }} -o StrictHostKeyChecking=no' public/ "${{ secrets.SSH_USER }}@${{ secrets.BJ_PROXY_HOST }}:${{ secrets.DEPLOY_PATH }}"
-
-      - name: Deploy to BJ2
-        if: ${{ !env.ACT && github.repository_owner == 'pingcap' }}
-        run: |
-          rsync -avz --delete -e 'ssh -p ${{ secrets.BJ_2_PROXY_PORT }} -o StrictHostKeyChecking=no' public/ "${{ secrets.SSH_USER }}@${{ secrets.BJ_PROXY_HOST }}:${{ secrets.DEPLOY_PATH }}"
-
-      - name: Zip public (only for testing)
-        if: ${{ github.repository_owner == 'Ti-FE' }}
-        run: zip public.zip -r public
-
-      - name: Create test release (only for testing)
-        uses: softprops/action-gh-release@v1
-        if: ${{ github.repository_owner == 'Ti-FE' }}
-        with:
-          tag_name: actions/runs/${{ github.run_id }}
-          files: public.zip
-
-      - name: Update current commit sha to cache
-        if: github.event.client_payload.download_type != 'full' && github.event.client_payload.repo != 'pingcap/website-docs'
-        run: |
-          echo ${{ github.event.client_payload.sha }} > ${{ steps.cache-commit.outputs.path }}
-
-      # if does full building, store latest commit sha of all docs repo
-      - name: Update all commit hashes
-        if: github.event.client_payload.download_type == 'full'
-        run: |
-          bash ./scripts/get-latest-commits.sh ${{ secrets.GH_TOKEN }}
+      # # if does full building, store latest commit sha of all docs repo
+      # - name: Update all commit hashes
+      #   if: github.event.client_payload.download_type == 'full'
+      #   run: |
+      #     bash ./scripts/get-latest-commits.sh ${{ secrets.GH_TOKEN }}
