@@ -75,11 +75,11 @@ jobs:
         run: |
           yarn run download:ee:zh:all
 
-      - name: Download specific docs
-        if: github.event.client_payload.download_type == 'partial'
-        env:
-          GITHUB_AUTHORIZATION_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: eval "${{ github.event.client_payload.command }}"
+      # - name: Download specific docs
+      #   if: github.event.client_payload.download_type == 'partial'
+      #   env:
+      #     GITHUB_AUTHORIZATION_TOKEN: ${{ secrets.GH_TOKEN }}
+      #   run: eval "${{ github.event.client_payload.command }}"
 
       # incremental: get the base commit from cache for furthur use
       # - name: Get base commit cache
@@ -129,7 +129,7 @@ jobs:
       - name: Deploy to HK
         if: ${{ !env.ACT && github.repository_owner == 'Hulkke' }}
         run: |
-          rsync -avz --delete -e 'ssh -p 22 -o StrictHostKeyChecking=no' public/ "root@${{ secrets.HK_HOST }}:/root/website-docs"
+          rsync -avz --delete -e 'ssh -o StrictHostKeyChecking=no' public/ "root@${{ secrets.HK_HOST }}:/root/website-docs/public"
 
       # - name: Update current commit sha to cache
       #   if: github.event.client_payload.download_type != 'full' && github.event.client_payload.repo != 'pingcap/website-docs'
